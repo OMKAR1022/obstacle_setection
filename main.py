@@ -1,51 +1,64 @@
 import cv2
+import depthai as dai
 
 
-# Function to draw the boxes (left, middle, right) with specific purposes
+# Function to draw the boxes (left, middle, right)
 def draw_boxes(frame):
     height, width, _ = frame.shape
 
-    # Define boundaries for the left, middle, and right boxes
-    box_width = width // 3  # Each box will be one-third of the screen width
+    # Divide the screen into three equal parts
+    box_width = width // 3
 
-    # Draw left box (for detecting objects that could enter middle from the left)
-    cv2.rectangle(frame, (0, 0), (box_width, height), (255, 0, 0), 2)  # Blue box for left
+    # Draw left box (move right if obstacle)
+    cv2.rectangle(frame, (0, 0), (box_width, height), (255, 0, 0), 2)  # Blue box
 
-    # Draw middle box (person's walking path)
-    cv2.rectangle(frame, (box_width, 0), (2 * box_width, height), (0, 255, 0), 2)  # Green box for middle
+    # Draw middle box (safe zone for walking)
+    cv2.rectangle(frame, (box_width, 0), (2 * box_width, height), (0, 255, 0), 2)  # Green box
 
-    # Draw right box (for detecting objects that could enter middle from the right)
-    cv2.rectangle(frame, (2 * box_width, 0), (width, height), (0, 0, 255), 2)  # Red box for right
+    # Draw right box (move left if obstacle)
+    cv2.rectangle(frame, (2 * box_width, 0), (width, height), (0, 0, 255), 2)  # Red box
 
-    # Display labels on each box
-    cv2.putText(frame, 'Left Box (Move Right if Object Enters)', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0),
-                2)
+    # Display labels
+    cv2.putText(frame, 'Left Box (Move Right)', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
     cv2.putText(frame, 'Middle Box (Walking Area)', (box_width + 10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-    cv2.putText(frame, 'Right Box (Move Left if Object Enters)', (2 * box_width + 10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                0.6, (0, 0, 255), 2)
+    cv2.putText(frame, 'Right Box (Move Left)', (2 * box_width + 10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
 
-# Open the camera feed
-cap = cv2.VideoCapture(0)
+# Create pipeline
+pipeline = dai.Pipeline()
 
-while True:
-    # Capture frame-by-frame
-    ret, frame = cap.read()
+# Define the color camera (RGB)
+cam_rgb = pipeline.create(dai.node.ColorCamera)
+cam_rgb.setPreviewSize(640, 480)
+cam_rgb.setInterleaved(False)
+cam_rgb.setBoardSocket(dai.CameraBoardSocket.RGB)
 
-    if not ret:
-        print("Failed to grab frame")
-        break
+# Create output link to send RGB frames to the host
+xout_rgb = pipeline.create(dai.node.XLinkOut)
+xout_rgb.setStreamName("rgb")
+cam_rgb.preview.link(xout_rgb.input)
 
-    # Draw the boxes on the frame
-    draw_boxes(frame)
+# Connect to the device and start the pipeline
+with dai.Device(pipeline) as device:
+    # Start data streams
+    rgb_queue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
 
-    # Display the resulting frame
-    cv2.imshow('Obstacle Detection', frame)
+    while True:
+        # Get the RGB frame from the OAK-D camera
+        in_rgb = rgb_queue.get()  # Blocking call, will wait until a new data is available
 
-    # Break the loop when 'q' is pressed
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+        # Convert the frame into OpenCV format
+        frame = in_rgb.getCvFrame()
 
-# Release the camera and close windows
-cap.release()
-cv2.destroyAllWindows()
+        # Draw the boxes on the frame
+        draw_boxes(frame)
+
+        # Display the frame
+        cv2.imshow("Obstacle Detection with OAK-D", frame)
+
+        # Break the loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Close the OpenCV window
+    cv2.destroyAllWindows()
