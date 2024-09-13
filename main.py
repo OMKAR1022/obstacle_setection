@@ -96,16 +96,22 @@ with dai.Device(pipeline) as device:
         # Draw the boxes on the frame
         draw_boxes(frame)
 
-        # Define the middle box (zone for detection)
+        # Define the boxes for detection
         height, width, _ = frame.shape
         box_width = width // 3
+        left_box = (0, 0, box_width, height)  # (x_start, y_start, x_end, y_end)
         middle_box = (box_width, 0, 2 * box_width, height)  # (x_start, y_start, x_end, y_end)
+        right_box = (2 * box_width, 0, width, height)  # (x_start, y_start, x_end, y_end)
 
-        # Detect objects within the middle box
-        detections = detect_objects_in_roi(frame, model, middle_box)
+        # Detect objects within the left, middle, and right boxes
+        left_detections = detect_objects_in_roi(frame, model, left_box)
+        middle_detections = detect_objects_in_roi(frame, model, middle_box)
+        right_detections = detect_objects_in_roi(frame, model, right_box)
 
         # Draw bounding boxes around detected objects with labels
-        draw_detected_objects(frame, detections, middle_box)
+        draw_detected_objects(frame, left_detections, left_box)
+        draw_detected_objects(frame, middle_detections, middle_box)
+        draw_detected_objects(frame, right_detections, right_box)
 
         # Display the frame
         cv2.imshow("Obstacle Detection with OAK-D", frame)
@@ -116,3 +122,4 @@ with dai.Device(pipeline) as device:
 
     # Close the OpenCV window
     cv2.destroyAllWindows()
+
