@@ -46,7 +46,6 @@ def detect_objects_in_roi(frame, model, roi_box):
 
     return detections
 
-
 # Function to draw bounding boxes around detected objects in the specified zone
 def draw_detected_objects(frame, detections, roi_box):
     x_start, y_start, x_end, y_end = roi_box
@@ -60,8 +59,10 @@ def draw_detected_objects(frame, detections, roi_box):
 
         # Draw bounding box and label
         if prob > 0.5:  # Filter detections based on confidence score
+            # Get the class name directly from YOLO's results
+            class_name = model.names[cls]
             cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 0, 255), 2)  # Red box
-            cv2.putText(frame, f'Object {int(cls)}: {prob:.2f}', (int(xmin), int(ymin)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+            cv2.putText(frame, f'{class_name}: {prob:.2f}', (int(xmin), int(ymin)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
 # Load YOLOv8 model
 model = YOLO('yolov8n.pt')  # Load a pre-trained YOLOv8 model
@@ -103,7 +104,7 @@ with dai.Device(pipeline) as device:
         # Detect objects within the middle box
         detections = detect_objects_in_roi(frame, model, middle_box)
 
-        # Draw bounding boxes around detected objects
+        # Draw bounding boxes around detected objects with labels
         draw_detected_objects(frame, detections, middle_box)
 
         # Display the frame
