@@ -58,7 +58,7 @@ def draw_detected_objects(frame, detections, roi_box):
         ymax += y_start
 
         # Draw bounding box and label
-        if prob > 0.5:  # Filter detections based on confidence score
+        if prob > 0.7:  # Filter detections based on confidence score
             # Get the class name directly from YOLO's results
             class_name = model.names[cls]
             cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 0, 255), 2)  # Red box
